@@ -49,6 +49,7 @@
     <PackageVersion Include="Asp.Versioning.Abstractions" Version="7.0.0" />
     <PackageVersion Include="Microsoft.NET.Build.Containers" Version="0.2.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(AspNetCoreVersion)" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageVersion Include="System.Threading.RateLimiting" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="System.Net.Http.Json" Version="$(AspNetCoreVersion)" />
   </ItemGroup>

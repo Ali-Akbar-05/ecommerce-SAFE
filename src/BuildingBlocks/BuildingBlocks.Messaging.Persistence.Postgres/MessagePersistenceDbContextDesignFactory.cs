@@ -6,5 +6,5 @@ namespace BuildingBlocks.Messaging.Persistence.Postgres;
 public class MessagePersistenceDbContextDesignFactory : DbContextDesignFactoryBase<MessagePersistenceDbContext>
 {
     public MessagePersistenceDbContextDesignFactory()
-        : base("ConnectionStrings:PostgresMessaging") { }
+        : base("MessagePersistenceOptions:ConnectionString") { }
 }

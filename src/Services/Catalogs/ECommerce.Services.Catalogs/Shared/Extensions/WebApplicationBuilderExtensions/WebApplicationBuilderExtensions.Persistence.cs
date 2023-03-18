@@ -1,4 +1,5 @@
 using BuildingBlocks.Abstractions.Persistence;
+using BuildingBlocks.Core.Messaging.MessagePersistence;
 using BuildingBlocks.Persistence.EfCore.Postgres;
 using BuildingBlocks.Persistence.Mongo;
 using ECommerce.Services.Catalogs.Shared.Contracts;
@@ -19,6 +20,8 @@ public static partial class WebApplicationBuilderExtensions
 
     private static void AddPostgresWriteStorage(IServiceCollection services, IConfiguration configuration)
     {
+        var dbType = configuration.GetValue<DatabaseType>("PostgresOptions:DatabaseType");
+
         if (configuration.GetValue<bool>("PostgresOptions:UseInMemory"))
         {
             services.AddDbContext<CatalogDbContext>(
@@ -29,7 +32,7 @@ public static partial class WebApplicationBuilderExtensions
         }
         else
         {
-            services.AddPostgresDbContext<CatalogDbContext>();
+            services.AddPostgresDbContext<CatalogDbContext>(dbType);
         }
 
         services.AddScoped<ICatalogDbContext>(provider => provider.GetRequiredService<CatalogDbContext>());

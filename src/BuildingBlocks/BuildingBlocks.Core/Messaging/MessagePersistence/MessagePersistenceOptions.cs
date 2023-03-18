@@ -6,4 +6,11 @@ public class MessagePersistenceOptions
     public string ConnectionString { get; set; } = default!;
     public bool Enabled { get; set; } = true;
     public string? MigrationAssembly { get; set; } = null!;
+    public DatabaseType DatabaseType { get; set; } = default!;
+}
+
+public enum DatabaseType
+{
+    MSSQL,
+    Postgres,
 }

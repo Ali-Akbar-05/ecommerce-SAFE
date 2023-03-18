@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
@@ -25,6 +25,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Polly" />
     <PackageReference Include="System.Net.Http.Json" />
     <PackageReference Include="EFCore.NamingConventions" />
+
   </ItemGroup>
 
   <ItemGroup>

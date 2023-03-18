@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Build.Containers" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
   </ItemGroup>
 
   <ItemGroup>

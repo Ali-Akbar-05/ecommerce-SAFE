@@ -5,6 +5,7 @@ using BuildingBlocks.Abstractions.CQRS.Events.Internal;
 using BuildingBlocks.Abstractions.Domain;
 using BuildingBlocks.Abstractions.Persistence;
 using BuildingBlocks.Abstractions.Persistence.EfCore;
+using BuildingBlocks.Core.Messaging.MessagePersistence;
 using BuildingBlocks.Core.Persistence.EfCore;
 using BuildingBlocks.Core.Persistence.EfCore.Interceptors;
 using BuildingBlocks.Core.Web.Extenions.ServiceCollection;
@@ -14,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -24,20 +26,24 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPostgresDbContext<TDbContext>(
         this IServiceCollection services,
+        DatabaseType DbType,
         Assembly? migrationAssembly = null,
         Action<DbContextOptionsBuilder>? builder = null
     )
         where TDbContext : DbContext, IDbFacadeResolver, IDomainEventContext
     {
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
         services.AddValidatedOptions<PostgresOptions>(nameof(PostgresOptions));
+
+        if (DbType == DatabaseType.Postgres)
+        {
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        }
 
         services.AddScoped<IConnectionFactory>(sp =>
         {
             var postgresOptions = sp.GetService<PostgresOptions>();
             Guard.Against.NullOrEmpty(postgresOptions?.ConnectionString);
-            return new NpgsqlConnectionFactory(postgresOptions.ConnectionString);
+            return new NpgsqlConnectionFactory(postgresOptions.ConnectionString, postgresOptions.DatabaseType);
         });
 
         services.AddDbContext<TDbContext>(
@@ -45,22 +51,40 @@ public static class ServiceCollectionExtensions
             {
                 var postgresOptions = sp.GetRequiredService<PostgresOptions>();
 
-                options
-                    .UseNpgsql(
-                        postgresOptions.ConnectionString,
-                        sqlOptions =>
+                switch (postgresOptions.DatabaseType)
+                {
+                    case DatabaseType.MSSQL:
+                        options.UseSqlServer(postgresOptions.ConnectionString, sqlOptions =>
                         {
-                            var name =
-                                migrationAssembly?.GetName().Name
-                                ?? postgresOptions.MigrationAssembly
-                                ?? typeof(TDbContext).Assembly.GetName().Name;
-
+                            var name = migrationAssembly?.GetName().Name
+                                    ?? postgresOptions.MigrationAssembly
+                                    ?? typeof(TDbContext).Assembly.GetName().Name;
                             sqlOptions.MigrationsAssembly(name);
                             sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-                        }
-                    )
-                    // https://github.com/efcore/EFCore.NamingConventions
-                    .UseSnakeCaseNamingConvention();
+                        }).UseSnakeCaseNamingConvention();
+                        break;
+
+                    case DatabaseType.Postgres:
+                        options.UseNpgsql(postgresOptions.ConnectionString,
+                                               sqlOptions =>
+                                               {
+                                                   var name =
+                                                       migrationAssembly?.GetName().Name
+                                                       ?? postgresOptions.MigrationAssembly
+                                                       ?? typeof(TDbContext).Assembly.GetName().Name;
+
+                                                   sqlOptions.MigrationsAssembly(name);
+                                                   sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                                               }
+                   )
+                   // https://github.com/efcore/EFCore.NamingConventions
+                   .UseSnakeCaseNamingConvention();
+                        break;
+                    default:
+                        break;
+                }
+
+
 
                 // ref: https://andrewlock.net/series/using-strongly-typed-entity-ids-to-avoid-primitive-obsession/
                 options.ReplaceService<IValueConverterSelector, StronglyTypedIdValueConverterSelector<long>>();

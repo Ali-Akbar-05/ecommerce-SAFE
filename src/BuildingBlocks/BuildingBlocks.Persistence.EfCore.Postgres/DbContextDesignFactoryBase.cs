@@ -1,3 +1,4 @@
+using BuildingBlocks.Core.Messaging.MessagePersistence;
 using BuildingBlocks.Core.Persistence.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -33,16 +34,35 @@ public abstract class DbContextDesignFactoryBase<TDbContext> : IDesignTimeDbCont
         var configuration = builder.Build();
 
         var connectionStringSectionValue = configuration.GetValue<string>(_connectionStringSection);
+        var dbType = configuration.GetValue<DatabaseType>("DatabaseType");
 
-        if (string.IsNullOrWhiteSpace(connectionStringSectionValue))
+        if (string.IsNullOrWhiteSpace(connectionStringSectionValue) && string.IsNullOrEmpty(dbType.ToString()))
         {
             throw new InvalidOperationException($"Could not find a value for {_connectionStringSection} section.");
         }
 
         Console.WriteLine($"ConnectionString  section value is : {connectionStringSectionValue}");
 
-        var optionsBuilder = new DbContextOptionsBuilder<TDbContext>()
-            .UseNpgsql(
+        DbContextOptionsBuilder<TDbContext> optionsBuilder=new();
+        switch (dbType)
+        {
+            case DatabaseType.MSSQL:
+                optionsBuilder = new DbContextOptionsBuilder<TDbContext>().UseSqlServer(
+             connectionStringSectionValue,
+             sqlOptions =>
+             {
+                 sqlOptions.MigrationsAssembly(GetType().Assembly.FullName);
+                 sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+             }
+         )
+         .UseSnakeCaseNamingConvention()
+         .ReplaceService<IValueConverterSelector, StronglyTypedIdValueConverterSelector<long>>();
+
+                break;
+
+
+            case DatabaseType.Postgres:
+                optionsBuilder = new DbContextOptionsBuilder<TDbContext>().UseNpgsql(
                 connectionStringSectionValue,
                 sqlOptions =>
                 {
@@ -52,7 +72,13 @@ public abstract class DbContextDesignFactoryBase<TDbContext> : IDesignTimeDbCont
             )
             .UseSnakeCaseNamingConvention()
             .ReplaceService<IValueConverterSelector, StronglyTypedIdValueConverterSelector<long>>();
+                break;
+               
+            default:
+                break;
+        }
 
         return (TDbContext)Activator.CreateInstance(typeof(TDbContext), optionsBuilder.Options);
+
     }
 }
