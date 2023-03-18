@@ -4,7 +4,7 @@ public static class EfConstants
 {
     public const string UuidGenerator = "uuid-ossp";
     public const string UuidAlgorithm = "uuid_generate_v4()";
-    public const string DateAlgorithm = "now()";
+    public const string DateAlgorithm = "getdate()";
 
     public static class ColumnTypes
     {
